@@ -14,6 +14,8 @@ from itsdangerous import URLSafeTimedSerializer
 # --- Load environment variables ---
 load_dotenv()
 
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+
 # --- Flask App Setup ---
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "change_this_secret")
@@ -21,17 +23,22 @@ app.secret_key = os.getenv("FLASK_SECRET", "change_this_secret")
 # --- Firebase initialization (safe) ---
 # --- Firebase initialization (safe) ---
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, db as firebase_db
 
-# Load credentials either from Render environment or from file
-if "FIREBASE_CREDENTIALS" in os.environ:
-    cred_json = json.loads(os.environ["FIREBASE_CREDENTIALS"])
-    cred = credentials.Certificate(cred_json)
-else:
-    cred = credentials.Certificate("backend/firebase-key.json")
+# Load Firebase credentials from Render env
+cred_json = os.getenv("FIREBASE_CREDENTIALS")
+if not cred_json:
+    raise RuntimeError("FIREBASE_CREDENTIALS missing — add it in Render Environment Variables.")
 
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+cred = credentials.Certificate(json.loads(cred_json))
+
+# Initialize with Realtime DB
+firebase_admin.initialize_app(cred, {
+    "databaseURL": os.getenv("FIREBASE_DB_URL")
+})
+
+db = firebase_db
+
 
 
 # --------------------------
